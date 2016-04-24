@@ -4,17 +4,21 @@ import android.app.Activity;
 import android.app.ProgressDialog;
 import android.content.DialogInterface;
 import android.graphics.Color;
+import android.os.Handler;
+import android.support.v4.widget.SwipeRefreshLayout;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.support.v7.widget.SearchView;
 import android.support.v7.widget.Toolbar;
 import android.view.Window;
 import android.view.WindowManager;
+import android.widget.ArrayAdapter;
 import android.widget.Toast;
 
 import com.android.volley.RequestQueue;
@@ -30,12 +34,14 @@ import org.json.JSONObject;
 import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Random;
 
-public class MainActivity extends AppCompatActivity {
+public class MainActivity extends AppCompatActivity implements SwipeRefreshLayout.OnRefreshListener{
 
     private RecyclerView recyclerView;
     private RecyclerView.Adapter adapter;
     private List<SingerMark> SingerList;
+    private SwipeRefreshLayout swipeRefreshLayout;
 
     private static long backPressed;
 
@@ -61,8 +67,46 @@ public class MainActivity extends AppCompatActivity {
 
         SingerList = new ArrayList<>(); //Лист с данными о певцах
 
+        swipeRefreshLayout = (SwipeRefreshLayout) findViewById(R.id.swipe_container);
+        swipeRefreshLayout.setOnRefreshListener(this);
+
         //Получаем данные
         getData();
+    }
+
+    @Override
+    public void onRefresh() {
+        new Handler().postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                swipeRefreshLayout.setRefreshing(false);
+                refresh();
+            }
+        }, 1);
+    }
+
+    //Метод для обновления
+    private void refresh() {
+        JsonArrayRequest jsonArrayRequest = new JsonArrayRequest(Config.DATA_URL,
+                new Response.Listener<JSONArray>() {
+                    @Override
+                    public void onResponse(JSONArray response) {
+                        parseData(response);
+                    }
+                },
+
+                //Если случилась ошибка при загрузке
+                new Response.ErrorListener() {
+                    @Override
+                    public void onErrorResponse(VolleyError error) {
+                        Toast.makeText(MainActivity.this, "Ошибка при загрузке",
+                                Toast.LENGTH_SHORT).show();
+                    }
+                });
+
+        //Отправляем запрос в очередь
+        RequestQueue requestQueue = Volley.newRequestQueue(this);
+        requestQueue.add(jsonArrayRequest);
     }
 
     private void getData() {
