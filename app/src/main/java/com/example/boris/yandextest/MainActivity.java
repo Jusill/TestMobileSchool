@@ -76,7 +76,6 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
             public void run() {
                 swipeRefreshLayout.setRefreshing(false);
                 refresh();
-                adapter.notifyDataSetChanged();
             }
         }, 1);
     }
@@ -169,7 +168,7 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
 
                 JSONArray jsonArray = json.getJSONArray(Config.TAG_GENRES);
                 for(int j=0; j<jsonArray.length(); j++){
-                    
+
                     //Проверяем последнее ли это слово
                     if(j!=jsonArray.length()-1){
                         //Добавляем разделитель
