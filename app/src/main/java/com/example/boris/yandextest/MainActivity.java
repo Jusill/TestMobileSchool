@@ -1,6 +1,5 @@
 package com.example.boris.yandextest;
 
-import android.app.Activity;
 import android.app.ProgressDialog;
 import android.content.DialogInterface;
 import android.graphics.Color;
@@ -16,9 +15,6 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.support.v7.widget.SearchView;
 import android.support.v7.widget.Toolbar;
-import android.view.Window;
-import android.view.WindowManager;
-import android.widget.ArrayAdapter;
 import android.widget.Toast;
 
 import com.android.volley.RequestQueue;
@@ -34,7 +30,6 @@ import org.json.JSONObject;
 import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Random;
 
 public class MainActivity extends AppCompatActivity implements SwipeRefreshLayout.OnRefreshListener{
 
@@ -65,7 +60,7 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
         layoutManager = new LinearLayoutManager(this);
         recyclerView.setLayoutManager(layoutManager);
 
-        SingerList = new ArrayList<>(); //Лист с данными о певцах
+        SingerList = new ArrayList<>();//Лист с данными о певцах
 
         swipeRefreshLayout = (SwipeRefreshLayout) findViewById(R.id.swipe_container);
         swipeRefreshLayout.setOnRefreshListener(this);
@@ -81,6 +76,7 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
             public void run() {
                 swipeRefreshLayout.setRefreshing(false);
                 refresh();
+                adapter.notifyDataSetChanged();
             }
         }, 1);
     }
@@ -91,7 +87,7 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
                 new Response.Listener<JSONArray>() {
                     @Override
                     public void onResponse(JSONArray response) {
-                        parseData(response);
+                        refreshData(response);
                     }
                 },
 
@@ -155,6 +151,76 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
         requestQueue.add(jsonArrayRequest);
     }
 
+    private void refreshData(JSONArray array){
+
+        ArrayList<SingerMark> RefreshList = new ArrayList<SingerMark>();
+
+        for(int i = 0; i<array.length(); i++) {
+            SingerMark singerMark = new SingerMark();
+            JSONObject json, json_image;
+
+            try {
+                ArrayList<String> genres = new ArrayList<String>();
+                json = array.getJSONObject(i);
+
+                json_image = json.getJSONObject(Config.TAG_IMAGE);
+                singerMark.setImageSmallUrl(json_image.getString(Config.TAG_SMALL_IMAGE));
+                singerMark.setImageBigUrl(json_image.getString(Config.TAG_BIG_IMAGE));
+
+                JSONArray jsonArray = json.getJSONArray(Config.TAG_GENRES);
+                for(int j=0; j<jsonArray.length(); j++){
+                    
+                    //Проверяем последнее ли это слово
+                    if(j!=jsonArray.length()-1){
+                        //Добавляем разделитель
+                        genres.add(((String)jsonArray.get(j))+", ");
+                    }
+                    else{
+                        genres.add(((String)jsonArray.get(j)));
+                    }
+
+                }
+                singerMark.setGenres(genres);
+
+                //Преобразуем строку в байты и приводим все к UTF-8
+                byte name_byte[] = json.getString(Config.TAG_NAME).getBytes("ISO-8859-1");
+                String name_value = new String(name_byte, "UTF-8");
+                singerMark.setName(name_value);
+
+                singerMark.setTracks(json.getString(Config.TAG_TRACKS));
+                singerMark.setAlbums(json.getString(Config.TAG_ALBUMS));
+
+                //Проверяем на наличие поля link
+                if(json.has(Config.TAG_LINK)){
+                    singerMark.setLink(json.getString(Config.TAG_LINK));
+                }
+                else{
+                    singerMark.setLink("null");
+                }
+
+                //Преобразуем строку в байты и приводим все к UTF-8
+                byte description_byte[] = json.getString(Config.TAG_DESCRIPTION).getBytes("ISO-8859-1");
+                String description_value = new String(description_byte, "UTF-8");
+                String sub=description_value.substring(0, 1).toUpperCase();
+                description_value=description_value.replaceFirst(description_value.substring(0, 1), sub);
+
+                singerMark.setDescription(description_value);
+
+            } catch (JSONException e) {
+                e.printStackTrace();
+            } catch (UnsupportedEncodingException e) {
+                e.printStackTrace();
+            }
+
+            RefreshList.add(singerMark); //Добавяем в ArrayList
+        }
+
+        adapter = new CardAdapter(RefreshList, this);
+
+        //Добавляем адаптер к recyclerView
+        recyclerView.setAdapter(adapter);
+    }
+
     private void parseData(JSONArray array){
 
         for(int i = 0; i<array.length(); i++) {
@@ -214,7 +280,6 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
             }
 
             SingerList.add(singerMark); //Добавяем в ArrayList
-
         }
 
         adapter = new CardAdapter(SingerList, this);
