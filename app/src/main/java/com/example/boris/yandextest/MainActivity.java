@@ -3,7 +3,6 @@ package com.example.boris.yandextest;
 import android.app.ProgressDialog;
 import android.content.DialogInterface;
 import android.graphics.Color;
-import android.os.Handler;
 import android.support.v4.widget.SwipeRefreshLayout;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
@@ -31,7 +30,7 @@ import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.List;
 
-public class MainActivity extends AppCompatActivity implements SwipeRefreshLayout.OnRefreshListener{
+public class MainActivity extends AppCompatActivity{
 
     private RecyclerView recyclerView;
     private RecyclerView.Adapter adapter;
@@ -62,22 +61,17 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
 
         SingerList = new ArrayList<>();//Лист с данными о певцах
 
+        //Обновление данных
         swipeRefreshLayout = (SwipeRefreshLayout) findViewById(R.id.swipe_container);
-        swipeRefreshLayout.setOnRefreshListener(this);
+        swipeRefreshLayout.setOnRefreshListener(new SwipeRefreshLayout.OnRefreshListener() {
+            @Override
+            public void onRefresh() {
+                refresh();
+            }
+        });
 
         //Получаем данные
         getData();
-    }
-
-    @Override
-    public void onRefresh() {
-        new Handler().postDelayed(new Runnable() {
-            @Override
-            public void run() {
-                swipeRefreshLayout.setRefreshing(false);
-                refresh();
-            }
-        }, 1);
     }
 
     //Метод для обновления
@@ -87,6 +81,9 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
                     @Override
                     public void onResponse(JSONArray response) {
                         refreshData(response);
+                        if (swipeRefreshLayout.isRefreshing()) {
+                            swipeRefreshLayout.setRefreshing(false);
+                        }
                     }
                 },
 
@@ -96,6 +93,9 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
                     public void onErrorResponse(VolleyError error) {
                         Toast.makeText(MainActivity.this, "Ошибка при загрузке",
                                 Toast.LENGTH_SHORT).show();
+                        if (swipeRefreshLayout.isRefreshing()) {
+                            swipeRefreshLayout.setRefreshing(false);
+                        }
                     }
                 });
 
